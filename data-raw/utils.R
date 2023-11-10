@@ -97,13 +97,17 @@ get_shapefile <- function(year, level, resolution) {
 
 
   # transform Mariana Islands
-
+#EDITED to 1.4
   mariana_islands <- shapes[shapes$STATEFP %in% c("69"), ] %>%
-    transform_state(rot = -35, scale = 0.3, shift = c(2150000, -2450000))
+    transform_state(rot = -35, scale = 0.15, shift = c(2150000, -2450000))
 
   proj4string(mariana_islands) <- proj4string(shapes)
 
+  # transform Palau
+  palau <- shapes[shapes$STATEFP %in% c("PW"), ] %>%
+    transform_state(rot = 0, scale = 0.15, shift = c(1800000, 800000))
 
+  proj4string(palau) <- proj4string(shapes)
   # recombine shapefile
   exclude <- c("02", "15", "60", "66", "69", "72", "78")
 
@@ -364,3 +368,61 @@ get_county_fips <- function() {
 
   county_fips
 }
+
+#Testing
+
+a <- get_shapefile(2016, 'state', '5m')
+#data_a <- a@data
+#
+#
+#
+#
+# b <- get_ccdf_shapefile(2016, 'state', '5m')
+
+spdf_sf <- st_as_sf(a)
+
+# Now you can use ggplot2 with geom_sf
+ggplot() +
+  geom_sf(data = spdf_sf) +
+  theme_minimal()
+
+
+
+library(rnaturalearth)
+
+get_global_shapefile <- function(resolution) {
+  world <- ne_countries(scale = resolution, returnclass = "sf")
+  return(world)
+}
+
+# Example usage:
+resolution <- 'medium'
+world_shapefile <- get_global_shapefile(resolution)
+print(world_shapefile)
+
+
+c <- st_as_sf(world_shapefile)
+
+c_usapi <- c %>%
+  filter(name_long %in% c("Palau", "Federated States of Micronesia", "Marshall Islands"))
+
+
+c_usapi <- c_usapi %>%
+  select(geometry, name_long, pop_est, iso_a3)
+
+
+colnames(c_usapi)[colnames(c_usapi) == "name_long"] ="NAME"
+
+c_usapi <- c_usapi %>%
+  select(NAME, geometry)
+
+spdf_sf <- spdf_sf %>%
+  select(NAME, geometry)
+
+joined_data <- rbind(c_usapi, spdf_sf)
+
+
+ggplot() +
+  geom_sf(data = joined_data) +
+  theme_minimal()
+
